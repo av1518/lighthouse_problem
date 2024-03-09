@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.optimize import minimize
 import time
+from corner import corner
 
 # %%
 # load the data
@@ -65,9 +66,14 @@ tau = max(taus)
 print(f"{tau = }")
 
 # %%
-samples = sampler.get_chain(flat=True)
-alpha_mean, beta_mean = np.mean(samples[1000:], axis=0)
-alpha_std, beta_std = np.std(samples[1000:], axis=0)
+burnin = 1000
+iid_samples = sampler.get_chain(flat=True, thin=int(tau), discard=0.05)
+iid = iid_samples[burnin:]
+num_samples = len(iid)
+print(f"{num_samples = }")
+
+alpha_mean, beta_mean = np.mean(iid[burnin:], axis=0)
+alpha_std, beta_std = np.std(iid[burnin:], axis=0)
 print(f"Alpha: Mean = {alpha_mean}, Std = {alpha_std}")
 print(f"Beta: Mean = {beta_mean}, Std = {beta_std}")
 
@@ -100,4 +106,6 @@ plt.xlabel("Alpha")
 plt.ylabel("Beta")
 plt.title("Joint Posterior Distribution of Alpha and Beta")
 plt.show()
-# %%
+# %% Thin out the chain
+iid_samples = sampler.get_chain(flat=True, thin=tau, discard=0.05)
+num_samples = len(iid_samples)
