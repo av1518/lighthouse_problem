@@ -93,19 +93,8 @@ for i, ax in enumerate(axs):
 
 plt.tight_layout()
 plt.show()
-# %%
-# Extracting samples for alpha and beta
-alpha_samples = samples[:, 0]
-beta_samples = samples[:, 1]
 
-# Creating the 2D histogram
-plt.figure(figsize=(10, 6))
-plt.hist2d(alpha_samples, beta_samples, bins=30, cmap="Blues")
-plt.colorbar(label="Frequency")
-plt.xlabel("Alpha")
-plt.ylabel("Beta")
-plt.title("Joint Posterior Distribution of Alpha and Beta")
+# %%
+# corner plot
+corner(iid, labels=[r"$\alpha$", r"$\beta$"], truths=[alpha_mean, beta_mean])
 plt.show()
-# %% Thin out the chain
-iid_samples = sampler.get_chain(flat=True, thin=tau, discard=0.05)
-num_samples = len(iid_samples)
