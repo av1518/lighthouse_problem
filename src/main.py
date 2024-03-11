@@ -7,6 +7,17 @@ from scipy.optimize import minimize
 import time
 from corner import corner
 
+from matplotlib import rcParams
+import matplotlib.ticker as ticker
+
+
+from funcs import plot_posterior_contours
+
+
+# Update Matplotlib settings to use LaTeX-like font
+# Set Matplotlib to use a commonly available serif font
+rcParams["font.family"] = "serif"
+rcParams["text.usetex"] = False  # Keep as False if LaTeX is not installed
 # %%
 # load the data
 file_path = "../lighthouse_flash_data.txt"
@@ -38,6 +49,7 @@ def log_posterior(theta, data):
         return -np.inf  # for zeus to ignore this region
 
 
+# %%
 nwalkers = 10
 nsteps = 100000
 ndim = 2
@@ -68,6 +80,7 @@ print(f"{tau = }")
 # %%
 burnin = 1000
 iid_samples = sampler.get_chain(flat=True, thin=int(tau), discard=0.05)
+# need to fix: discard drops the first 5% of the samples, but we also  have a birnin of 1000
 iid = iid_samples[burnin:]
 num_samples = len(iid)
 print(f"{num_samples = }")
@@ -98,3 +111,8 @@ plt.show()
 # corner plot
 corner(iid, labels=[r"$\alpha$", r"$\beta$"], truths=[alpha_mean, beta_mean])
 plt.show()
+
+# %%
+plot_posterior_contours(log_posterior, flash_locations)
+
+# %% part (vii)
