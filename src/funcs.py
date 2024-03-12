@@ -26,7 +26,9 @@ def log_likelihood(theta, data):
     )
 
 
-def log_posterior(theta, data, alpha_min=-10, alpha_max=10, beta_min=0.01, beta_max=10):
+def log_posterior(
+    theta, data, alpha_min=-10, alpha_max=10, beta_min=0.001, beta_max=10
+):
     """
     Calculate the log-posterior PDF for part (v).
 

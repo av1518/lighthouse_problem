@@ -11,7 +11,7 @@ from matplotlib import rcParams
 import matplotlib.ticker as ticker
 
 
-from funcs import plot_posterior_contours
+from funcs import plot_posterior_contours, log_likelihood, log_posterior
 
 
 # Update Matplotlib settings to use LaTeX-like font
@@ -24,38 +24,14 @@ file_path = "../lighthouse_flash_data.txt"
 data = pd.read_csv(file_path, sep=" ", header=None)
 flash_locations = data[0].values
 
-
+plot_posterior_contours(log_posterior, flash_locations)
 # %%
-def log_likelihood(theta, data):
-    alpha, beta = theta
-    # ll_sum = 0
-
-    # for x in data:
-    #     ll_sum += np.log(beta / np.pi) - 2 * np.log(beta**2 + (x - alpha) ** 2)
-
-    return np.log(beta / np.pi) * len(data) - np.sum(
-        np.log(beta**2 + (data - alpha) ** 2)
-    )
-    # return ll_sum
-
-
-def log_posterior(theta, data):
-    alpha, beta = theta
-    alpha_min = -10
-    alpha_max = 10
-    if beta > 0.01 and alpha_min < alpha < alpha_max:
-        return log_likelihood(theta, data)
-    else:
-        return -np.inf  # for zeus to ignore this region
-
-
-# %%
-nwalkers = 10
-nsteps = 100000
+nwalkers = 50
+nsteps = 10000
 ndim = 2
 
-alpha_bounds = [-10, 10]
-beta_bounds = [1, 5]
+alpha_bounds = [-2, 1]
+beta_bounds = [1, 3]
 
 # Generating initial positions within the bounds
 start_positions = np.zeros((nwalkers, ndim))
@@ -66,9 +42,15 @@ start_positions[:, 1] = np.random.uniform(
     beta_bounds[0], beta_bounds[1], nwalkers
 )  # Beta
 
+gelman_rub = zeus.callbacks.SplitRCallback(
+    ncheck=200, epsilon=0.01, nsplits=10, discard=0.2
+)
+
+min_iter = zeus.callbacks.MinIterCallback(nmin=10000)
+
 sampler = zeus.EnsembleSampler(nwalkers, ndim, log_posterior, args=[flash_locations])
 
-sampler.run_mcmc(start_positions, nsteps)
+sampler.run_mcmc(start_positions, nsteps, callbacks=[gelman_rub, min_iter])
 
 # %%
 taus = zeus.AutoCorrTime(sampler.get_chain())
@@ -77,35 +59,73 @@ print("Autocorrelation:", taus)
 tau = max(taus)
 print(f"{tau = }")
 
+R_diag = gelman_rub.estimates
+plt.plot(np.arange(len(R_diag)), R_diag, lw=2.5)
+plt.title("Split-R Gelman-Rubin Statistic", fontsize=14)
+plt.xlabel("Iterations", fontsize=14)
+plt.ylabel(r"$R$", fontsize=14)
+
+
 # %%
-burnin = 1000
-iid_samples = sampler.get_chain(flat=True, thin=int(tau), discard=0.05)
-# need to fix: discard drops the first 5% of the samples, but we also  have a birnin of 1000
-iid = iid_samples[burnin:]
+iid = sampler.get_chain(flat=True, thin=int(tau), discard=0.2)
 num_samples = len(iid)
 print(f"{num_samples = }")
 
-alpha_mean, beta_mean = np.mean(iid[burnin:], axis=0)
-alpha_std, beta_std = np.std(iid[burnin:], axis=0)
+alpha_mean, beta_mean = np.mean(iid, axis=0)
+alpha_std, beta_std = np.std(iid, axis=0)
 print(f"Alpha: Mean = {alpha_mean}, Std = {alpha_std}")
 print(f"Beta: Mean = {beta_mean}, Std = {beta_std}")
 
 # %%
-fig, axs = plt.subplots(nrows=ndim, figsize=(5, ndim * 2))
+fig, axs = plt.subplots(nrows=2, figsize=(5, 4))
 
-for i, ax in enumerate(axs):
-    ax.plot(sampler.get_chain()[:, :, i], alpha=0.25)
-    # ax.set_ylim(-2,2)
-    if i == ndim - 1:
-        ax.set_xlabel("Iterations")
-    else:
-        ax.set_xticks([])
-    ax.set_ylabel(r"$x_{" + str(i) + "}$")
+axs[0].plot(sampler.get_chain()[:, :, 0], alpha=0.25)
+axs[0].set_xlabel("Iterations")
+axs[0].set_ylabel(r"$\alpha$")
+axs[0].set_xlim(0, nsteps)
 
-    ax.set_xlim(0, nsteps)
+axs[1].plot(sampler.get_chain()[:, :, 1], alpha=0.25)
+axs[1].set_xlabel("Iterations")
+axs[1].set_ylabel(r"$\beta$")
+axs[1].set_xlim(0, nsteps)
 
 plt.tight_layout()
 plt.show()
+# %% Potting the last few iterations
+fig, axs = plt.subplots(nrows=2, figsize=(5, 4))
+
+starting_point = 500
+
+# Assuming nsteps is the total number of iterations
+start = nsteps - starting_point
+
+# Retrieve the last 1000 iterations for each parameter
+last_alpha = sampler.get_chain()[-starting_point:, :, 0]
+last_beta = sampler.get_chain()[-starting_point:, :, 1]
+
+# Plot alpha values for the last 1000 iterations
+for idx, walker in enumerate(last_alpha.T):
+    if idx == 0:  # Label only the first walker for clarity
+        axs[0].plot(range(start, nsteps), walker, alpha=0.5, label=f"Walker {idx}")
+    else:
+        axs[0].plot(range(start, nsteps), walker, alpha=0.5)
+axs[0].set_xlabel("Iterations")
+axs[0].set_ylabel(r"$\alpha$")
+axs[0].legend()  # Add legend to the plot
+
+# Plot beta values for the last 1000 iterations
+for idx, walker in enumerate(last_beta.T):
+    if idx == 0:  # Label only the first walker for clarity
+        axs[1].plot(range(start, nsteps), walker, alpha=0.5, label=f"Walker {idx}")
+    else:
+        axs[1].plot(range(start, nsteps), walker, alpha=0.5)
+axs[1].set_xlabel("Iterations")
+axs[1].set_ylabel(r"$\beta$")
+axs[1].legend()  # Add legend to the plot
+
+plt.tight_layout()
+plt.show()
+
 
 # %%
 # corner plot
