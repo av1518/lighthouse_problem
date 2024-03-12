@@ -11,7 +11,12 @@ from matplotlib import rcParams
 import matplotlib.ticker as ticker
 
 
-from funcs import plot_posterior_contours, log_likelihood, log_posterior
+from funcs import (
+    plot_posterior_contours,
+    log_likelihood,
+    log_posterior,
+    gelman_rubin_for_multiple_chains,
+)
 
 
 # Update Matplotlib settings to use LaTeX-like font
@@ -49,8 +54,10 @@ gelman_rub = zeus.callbacks.SplitRCallback(
 min_iter = zeus.callbacks.MinIterCallback(nmin=10000)
 
 sampler = zeus.EnsembleSampler(nwalkers, ndim, log_posterior, args=[flash_locations])
+sampler2 = zeus.EnsembleSampler(nwalkers, ndim, log_posterior, args=[flash_locations])
 
-sampler.run_mcmc(start_positions, nsteps, callbacks=[gelman_rub, min_iter])
+sampler.run_mcmc(start_positions, nsteps)
+sampler2.run_mcmc(start_positions, nsteps)
 
 # %%
 taus = zeus.AutoCorrTime(sampler.get_chain())
@@ -58,18 +65,42 @@ print("Autocorrelation:", taus)
 
 tau = max(taus)
 print(f"{tau = }")
-
-R_diag = gelman_rub.estimates
-plt.plot(np.arange(len(R_diag)), R_diag, lw=2.5)
-plt.title("Split-R Gelman-Rubin Statistic", fontsize=14)
-plt.xlabel("Iterations", fontsize=14)
-plt.ylabel(r"$R$", fontsize=14)
-
-
-# %%
+# %% Gelman rubin test
 iid = sampler.get_chain(flat=True, thin=int(tau), discard=0.2)
 num_samples = len(iid)
 print(f"{num_samples = }")
+
+iid_2 = sampler2.get_chain(flat=True, thin=int(tau), discard=0.2)
+
+# %%
+alpha_chains = [iid[:, 0], iid_2[:, 0]]
+beta_chains = [iid[:, 1], iid_2[:, 1]]
+
+GR_alpha = gelman_rubin_for_multiple_chains(alpha_chains, frequency=10)
+GR_beta = gelman_rubin_for_multiple_chains(beta_chains, frequency=10)
+
+# plot diagnostics
+# %%
+
+
+def plot_gelman_rubin(gr_stats, title):
+    iterations, R_values = zip(*gr_stats)
+    plt.plot(iterations, R_values, marker="o")
+    plt.xlabel("Iteration")
+    plt.ylabel("PSRF")
+    plt.title(title)
+    plt.grid(True)
+    plt.show()
+
+
+plot_gelman_rubin(GR_alpha, r"Gelman-Rubin statistic for $\alpha$")
+plot_gelman_rubin(GR_beta, r"Gelman-Rubin statistic for $\beta$")
+
+
+# plot dianostics
+
+
+# %%
 
 alpha_mean, beta_mean = np.mean(iid, axis=0)
 alpha_std, beta_std = np.std(iid, axis=0)

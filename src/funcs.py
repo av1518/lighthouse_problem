@@ -115,3 +115,31 @@ def plot_posterior_contours(
     plt.xticks(np.arange(alpha_range[0], alpha_range[1], 1))  # Add more xticks
     plt.yticks(np.arange(0, beta_range[1], 0.5))  # Add more yticks
     plt.show()
+
+
+def gelman_rubin_for_multiple_chains(chains, frequency):
+    min_length = min(len(chain) for chain in chains)
+    results = []
+
+    for i in range(frequency, min_length + 1, frequency):
+        # Split each chain and store the sub-chains
+        sub_chains = [chain[: i // 2] for chain in chains] + [
+            chain[i // 2 : i] for chain in chains
+        ]
+        # Calculate Gelman-Rubin Diagnostic for the sub-chains
+        R = compute_gelman_rubin(sub_chains)
+        results.append((i, R))
+
+    return results
+
+
+def compute_gelman_rubin(sub_chains):
+    means = [np.mean(chain) for chain in sub_chains]
+    n = len(sub_chains[0])
+    variances = [np.var(chain, ddof=1) for chain in sub_chains]
+    W = np.mean(variances)
+    B = n * np.var(means, ddof=1)
+    # Assuming all sub-chains are of equal length
+    Var_plus = (n - 1) / n * W + B / n
+    R = np.sqrt(Var_plus / W)
+    return R
