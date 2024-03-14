@@ -143,3 +143,98 @@ def compute_gelman_rubin(sub_chains):
     Var_plus = (n - 1) / n * W + B / n
     R = np.sqrt(Var_plus / W)
     return R
+
+
+def log_likelihood_loc(theta, data):
+    """
+    Calculate the log-likelihood for part (v).
+
+    Args:
+    @param theta A tuple or list containing the parameters alpha and beta.
+                 - alpha (float): The position of the lighthouse along the coast.
+                 - beta (float): The distance of the lighthouse from the shore.
+    @param data A numpy array of observed flash locations along the coastline.
+
+    @return The log-likelihood of the observed data given the parameters.
+    """
+    alpha, beta = theta
+    return np.log(beta / np.pi) * len(data) - np.sum(
+        np.log(beta**2 + (data - alpha) ** 2)
+    )
+
+
+def log_likelihood_int(alpha, beta, I0, x_data, I_data, sigma=1.0):
+    # calculate squared distatnce from the lighthouse to each detected flash
+    d_squared = beta * beta + (x_data - alpha) ** 2
+
+    # expected log-intensity foe each measurement
+    mu = np.log(I0) - np.log(d_squared)
+
+    log_likelihood = -1 / (2 * sigma**2) * np.sum((np.log(I_data) - mu) ** 2) - len(
+        I_data
+    ) * np.log(np.sqrt(2 * np.pi) * sigma)
+    return log_likelihood
+
+
+def combined_log_likelihood(theta, x_data, I_data):
+    alpha, beta, I0 = theta
+    loc_likelihood = log_likelihood_loc((alpha, beta), x_data)
+    int_likelihood = log_likelihood_int(alpha, beta, I0, x_data, I_data)
+    return loc_likelihood + int_likelihood
+
+
+def log_posterior_combined(
+    theta,
+    loc_data,
+    int_data,
+    alpha_min=-10,
+    alpha_max=10,
+    beta_min=0.01,
+    beta_max=10,
+    I0_min=0.01,
+    I0_max=100,
+):
+    alpha, beta, I0 = theta
+
+    if (
+        beta_min < beta < beta_max
+        and alpha_min < alpha < alpha_max
+        and I0_min < I0 < I0_max
+    ):
+        combined_likelihood = combined_log_likelihood(theta, loc_data, int_data)
+        # log_prior_I0 = -np.log(sigma_I0 * np.sqrt(2 * np.pi)) - (
+        #     np.log(I0) - mu_I0
+        # ) ** 2 / (2 * sigma_I0**2)
+        jeffrey_prior = np.log(1 / (I0 * np.log(I0_max / I0_min)))
+        return combined_likelihood + jeffrey_prior
+    else:
+        return -np.inf
+
+
+def plot_posterior_vs_intensity(
+    log_posterior_func,
+    loc_data,
+    int_data,
+    alpha_best=-0.4545,
+    beta_best=1.9705,
+    I0_range=(0.01, 10),
+    grid_size=200,
+):
+    I0_vals = np.linspace(I0_range[0], I0_range[1], grid_size)
+
+    # Initialize an array to hold the posterior probabilities
+    posterior = np.zeros(grid_size)
+
+    # Calculate the posterior probability for each value of I0
+    for i, I0 in enumerate(I0_vals):
+        theta = [alpha_best, beta_best, I0]
+        posterior[i] = np.exp(log_posterior_func(theta, loc_data, int_data))
+
+    # Plot the results
+    plt.figure(figsize=(8, 6), dpi=150)
+    plt.plot(I0_vals, posterior, label="Posterior vs. I0")
+    plt.xlabel(r"$I_0$", fontsize=15)
+    plt.ylabel("Posterior Probability", fontsize=15)
+    plt.title("Posterior Distribution vs. Intensity (I0)")
+    plt.legend()
+    plt.show()
