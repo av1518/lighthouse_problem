@@ -145,25 +145,51 @@ print(f"Max {tau = }")
 chain_1 = sampler.get_chain(flat=True)
 chain_2 = sampler_2.get_chain(flat=True)
 print(len(chain_1), len(chain_2))
-# %%
 
 fig, axs = plt.subplots(nrows=2, figsize=(7, 7))
 
+# Plotting for parameter alpha
 for i in range(2):
     axs[0].plot(sampler.get_chain()[:, i, 0][:500], alpha=0.5, label=f"Walker {i+1}")
+
+# Plot initial positions of all walkers for alpha
+initial_positions_alpha = sampler.get_chain()[0, :, 0]
+axs[0].scatter(
+    [0] * len(initial_positions_alpha),
+    initial_positions_alpha,
+    color="black",
+    marker="x",
+    zorder=5,
+    label="Starting values",
+)
+
 axs[0].set_xlabel("Iterations", fontsize=16)
 axs[0].set_ylabel(r"$\alpha$", fontsize=20)
-axs[0].legend()
+axs[0].legend(loc="upper right")
 
+# Plotting for parameter beta
 for i in range(2):
     axs[1].plot(sampler.get_chain()[:, i, 1][:500], alpha=0.5, label=f"Walker {i+1}")
+
+# Plot initial positions of all walkers for beta
+initial_positions_beta = sampler.get_chain()[0, :, 1]
+axs[1].scatter(
+    [0] * len(initial_positions_beta),
+    initial_positions_beta,
+    color="black",
+    marker="x",
+    zorder=5,
+    label="Starting values",
+)
+
 axs[1].set_xlabel("Iterations", fontsize=16)
 axs[1].set_ylabel(r"$\beta$", fontsize=20)
-axs[1].legend()
+axs[1].legend(loc="upper right")
 
 plt.tight_layout()
 plt.savefig("chain_plots_v.png", dpi=500, bbox_inches="tight")
 plt.show()
+
 # %%
 alpha_chains_1 = [chain_1[:, 0], chain_2[:, 0]]
 beta_chains_1 = [chain_1[:, 1], chain_2[:, 1]]
