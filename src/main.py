@@ -25,7 +25,6 @@ from funcs import (
     log_posterior,
     gelman_rubin_for_multiple_chains,
     log_posterior_combined,
-    plot_posterior_vs_intensity,
     scientific_notation,
 )
 
@@ -152,7 +151,7 @@ def plot_gelman_rubin(gr_stats_alpha, gr_stats_beta, max_iteration):
     axes[1].grid(True)
 
     # Set a single  title
-    fig.suptitle("Gelman-Rubin Diagnostics for part (v)", fontsize=16)
+    # fig.suptitle("Gelman-Rubin Diagnostics for part (v)", fontsize=16)
 
     fig.subplots_adjust(hspace=0.4)
 
@@ -386,7 +385,6 @@ print(f"Max {tau = }")
 # %% Gelman rubin test
 chain_1 = sampler.get_chain(flat=True)
 chain_2 = sampler_2.get_chain(flat=True)
-print(len(chain_1), len(chain_2))
 # %% Visualize the chains
 
 fig, axs = plt.subplots(nrows=3, figsize=(7, 10))
@@ -454,7 +452,7 @@ def plot_gelman_rubin(gr_stats_alpha, gr_stats_beta, gr_stats_I0, max_iteration)
     axes[2].grid(True)
 
     # Set a single, overarching title
-    fig.suptitle("Gelman-Rubin Diagnostics", fontsize=16)
+    # fig.suptitle("Gelman-Rubin Diagnostics", fontsize=16)
 
     fig.subplots_adjust(hspace=0.4)
 
