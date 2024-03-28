@@ -38,6 +38,21 @@ Here's an overview of each script:
 
 - All the code was ran on a CPU: Ryzen 9.
 
+## Dockerfile Instructions
+The user can build and run the solver in a Docker container using the `Dockerfile` provided in the repository. From the root directory, build the image with:
+
+```bash
+$ docker build -t stats .
+```
+
+This generates a Docker image called `stats`. To deploy and run the package in the container with a local input file, run the following command:
+
+```bash
+$ docker run --rm -ti s2
+```
+
+This setup uses a virtual Ubuntu environment with Miniconda, installs the necessary packages and activates the environment. 
+
 
 
 ### Contributing
