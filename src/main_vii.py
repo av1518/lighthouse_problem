@@ -86,7 +86,7 @@ def plot_posterior_vs_intensity(
 
     plt.legend()
     plt.savefig("posterior_vs_intensity.png", dpi=300, bbox_inches="tight")
-    plt.show()
+    # plt.show()
 
 
 plot_posterior_vs_intensity(log_posterior_combined, flash_locations, intensities)
@@ -156,7 +156,7 @@ axs[2].legend()
 
 plt.tight_layout()
 plt.savefig("chain_plots.png", dpi=500, bbox_inches="tight")
-plt.show()
+# plt.show()
 
 # %%
 alpha_chains_1 = [chain_1[:, 0], chain_2[:, 0]]
@@ -206,7 +206,7 @@ def plot_gelman_rubin(gr_stats_alpha, gr_stats_beta, gr_stats_I0, max_iteration)
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     plt.savefig("Gelman-Rubin_Diagnostics.png", bbox_inches="tight")
-    plt.show()
+    # plt.show()
 
 
 plot_gelman_rubin(GR_alpha, GR_beta, GR_I0, 100)  # Plots up to the 100th iteration
@@ -241,4 +241,4 @@ corner(
     color="black",
 )
 plt.savefig("corner_plot_vii.png", dpi=500, bbox_inches="tight")
-plt.show()
+# plt.show()

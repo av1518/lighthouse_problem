@@ -1,2 +1,11 @@
-/report
+# Ignore everything in the report directory
+/report/*
+
+# but exclude .pdf files in the report directory
+!/report/*.pdf
+
+# ignore all .png files globally
 *.png
+
+# ignore pycache
+__pycache__/

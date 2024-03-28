@@ -1,10 +1,5 @@
 import numpy as np
-import zeus
 import matplotlib.pyplot as plt
-import pandas as pd
-from scipy.optimize import minimize
-import time
-from corner import corner
 import matplotlib.ticker as ticker
 
 
@@ -64,7 +59,7 @@ def scientific_notation(x, pos):
 
 
 def plot_posterior_contours(
-    log_posterior_func, data, alpha_range=(-5, 5), beta_range=(0.01, 6), grid_size=200
+    log_posterior_func, data, alpha_range=(-2, 2), beta_range=(0.01, 3.5), grid_size=200
 ):
     """
     Plot the posterior distribution of alpha and beta.
@@ -104,20 +99,54 @@ def plot_posterior_contours(
     cbar.update_ticks()
 
     # Add contour lines for better visualization
+    # print(contourf.levels[::20])
     contour = plt.contour(
-        alpha_grid, beta_grid, posterior, levels=contourf.levels[::20], colors="k"
+        alpha_grid,
+        beta_grid,
+        posterior,
+        levels=contourf.levels[::20],
+        colors="k",
     )
-    plt.clabel(contour, inline=True, fontsize=8)
+    plt.clabel(contour, inline=True, fontsize=12)
 
-    plt.xlabel(r"$\alpha$", fontsize=15)
-    plt.ylabel(r"$\beta$", fontsize=15)
-    plt.title("Posterior Distribution of Alpha and Beta")
-    plt.xticks(np.arange(alpha_range[0], alpha_range[1], 1))  # Add more xticks
-    plt.yticks(np.arange(0, beta_range[1], 0.5))  # Add more yticks
-    plt.show()
+    plt.xlabel(r"$\alpha$", fontsize=20)
+    plt.ylabel(r"$\beta$", fontsize=20)
+    plt.title(r"Unnormalised Posterior Distribution")
+    plt.xticks(np.arange(alpha_range[0], alpha_range[1], 1))
+    plt.yticks(np.arange(0, beta_range[1], 0.5))
+    plt.savefig("figures/posterior_contours_v.png", dpi=300, bbox_inches="tight")
+    # plt.show()
 
 
 def gelman_rubin_for_multiple_chains(chains, frequency):
+    """
+    @brief Calculates the Gelman-Rubin diagnostic at regular intervals for multiple MCMC chains.
+
+    This function computes the Gelman-Rubin diagnostic for assessing the convergence of
+    multiple Markov Chain Monte Carlo (MCMC) chains. It evaluates the diagnostic at
+    regular intervals defined by 'frequency' up to the length of the shortest chain.
+    The diagnostic is computed by splitting each chain into two sub-chains and using
+    these sub-chains to calculate the Gelman-Rubin statistic.
+
+    @param chains A list of MCMC chains, each represented as a list of samples.
+                  The chains should all be of the same length.
+    @param frequency An integer defining the interval at which the diagnostic should
+                     be calculated.
+
+    @return A list of tuples. Each tuple contains two elements: the iteration number
+            at which the diagnostic was calculated and the corresponding Gelman-Rubin
+            statistic.
+
+    Example usage:
+    >>> chains = [chain1, chain2, chain3]  # where chain1, chain2, chain3 are lists
+    >>> frequency = 100
+    >>> results = gelman_rubin_for_multiple_chains(chains, frequency)
+
+    Note:
+    - The function requires a helper function `compute_gelman_rubin(sub_chains)` which
+      computes the Gelman-Rubin statistic for a given set of sub-chains.
+    - The function assumes that all chains are of equal length and contain numerical values.
+    """
     min_length = min(len(chain) for chain in chains)
     results = []
 
@@ -134,6 +163,33 @@ def gelman_rubin_for_multiple_chains(chains, frequency):
 
 
 def compute_gelman_rubin(sub_chains):
+    """
+    @brief Computes the Gelman-Rubin diagnostic statistic for a set of sub-chains.
+
+    This function calculates the Gelman-Rubin diagnostic, a convergence diagnostic
+    for Markov Chain Monte Carlo (MCMC) simulations. It uses the between-chain variance
+    and within-chain variance to compute the R-hat statistic, which is a measure of
+    convergence. An R-hat value close to 1 indicates that the chains have converged.
+
+    The function assumes that all sub-chains are of equal length and contains numerical
+    values.
+
+    @param sub_chains A list of sub-chains, each represented as a list of samples.
+                      These sub-chains are used to calculate the diagnostic.
+
+    @return The computed Gelman-Rubin R-hat statistic. A value close to 1 indicates
+            convergence of the chains.
+
+    Example usage:
+    >>> sub_chains = [chain1[:len(chain1)//2], chain1[len(chain1)//2:], chain2[:len(chain2)//2], chain2[len(chain2)//2:]]
+    >>> R = compute_gelman_rubin(sub_chains)
+
+    Note:
+    - The function uses numpy for calculating means and variances.
+    - 'np.mean' is used for calculating the mean of each sub-chain.
+    - 'np.var' with 'ddof=1' is used for calculating the sample variance of each sub-chain.
+    """
+
     means = [np.mean(chain) for chain in sub_chains]
     n = len(sub_chains[0])
     variances = [np.var(chain, ddof=1) for chain in sub_chains]
@@ -164,6 +220,19 @@ def log_likelihood_loc(theta, data):
 
 
 def log_likelihood_int(alpha, beta, I0, x_data, I_data, sigma=1.0):
+    """
+    @brief Computes the log-likelihood for including the intensity measurements
+
+    @param alpha The position of the lighthouse along the shore.
+    @param beta The distance of the lighthouse from the shore.
+    @param I0 The absolute intensity of the lighthouse.
+    @param x_data A numpy array containing the positions of detected flashes along the shore.
+    @param I_data A numpy array containing the observed intensities of the flashes.
+    @param sigma The standard deviation of the Gaussian distribution of log-intensities.
+                 Default is 1.0.
+
+    @return The log-likelihood of the observed intensity data given the model parameters.
+    """
     # calculate squared distatnce from the lighthouse to each detected flash
     d_squared = beta * beta + (x_data - alpha) ** 2
 
@@ -177,6 +246,16 @@ def log_likelihood_int(alpha, beta, I0, x_data, I_data, sigma=1.0):
 
 
 def combined_log_likelihood(theta, x_data, I_data):
+    """
+    @brief Adds the log-likelihoods of the location and intensity data
+
+    @param theta A tuple of parameters (alpha, beta, I0).
+    @param x_data A numpy array containing the positions of detected flashes along the shore.
+    @param I_data A numpy array containing the observed intensities of the flashes.
+
+    @return The combined log-likelihood of the location and intensity data.
+    """
+
     alpha, beta, I0 = theta
     loc_likelihood = log_likelihood_loc((alpha, beta), x_data)
     int_likelihood = log_likelihood_int(alpha, beta, I0, x_data, I_data)
@@ -194,6 +273,29 @@ def log_posterior_combined(
     I0_min=0.01,
     I0_max=100,
 ):
+    """
+    @brief Computes the log-posterior for combined location and intensity data.
+
+    This function calculates the log-posterior probability of the lighthouse model parameters
+    (alpha, beta, I0) given location and intensity data. It uses a combined log-likelihood
+    function (`combined_log_likelihood`) and applies a Jeffrey's prior for I0. The function
+    only computes the log-posterior if the parameters fall within specified ranges;
+    otherwise, it returns negative infinity. This is the expected input for the MCMC sampler.
+
+    @param theta A tuple of model parameters (alpha, beta, I0).
+    @param loc_data A numpy array containing the positions of detected flashes along the shore.
+    @param int_data A numpy array containing the observed intensities of the flashes.
+    @param alpha_min The minimum allowed value for alpha. Default is -10.
+    @param alpha_max The maximum allowed value for alpha. Default is 10.
+    @param beta_min The minimum allowed value for beta. Default is 0.01.
+    @param beta_max The maximum allowed value for beta. Default is 10.
+    @param I0_min The minimum allowed value for I0. Default is 0.01.
+    @param I0_max The maximum allowed value for I0. Default is 100.
+
+    @return The log-posterior probability of the parameters if they fall within the specified ranges.
+            If the parameters are outside the ranges, it returns negative infinity.
+
+    """
     alpha, beta, I0 = theta
 
     if (
@@ -202,39 +304,7 @@ def log_posterior_combined(
         and I0_min < I0 < I0_max
     ):
         combined_likelihood = combined_log_likelihood(theta, loc_data, int_data)
-        # log_prior_I0 = -np.log(sigma_I0 * np.sqrt(2 * np.pi)) - (
-        #     np.log(I0) - mu_I0
-        # ) ** 2 / (2 * sigma_I0**2)
         jeffrey_prior = np.log(1 / (I0 * np.log(I0_max / I0_min)))
         return combined_likelihood + jeffrey_prior
     else:
         return -np.inf
-
-
-def plot_posterior_vs_intensity(
-    log_posterior_func,
-    loc_data,
-    int_data,
-    alpha_best=-0.4545,
-    beta_best=1.9705,
-    I0_range=(0.01, 10),
-    grid_size=200,
-):
-    I0_vals = np.linspace(I0_range[0], I0_range[1], grid_size)
-
-    # Initialize an array to hold the posterior probabilities
-    posterior = np.zeros(grid_size)
-
-    # Calculate the posterior probability for each value of I0
-    for i, I0 in enumerate(I0_vals):
-        theta = [alpha_best, beta_best, I0]
-        posterior[i] = np.exp(log_posterior_func(theta, loc_data, int_data))
-
-    # Plot the results
-    plt.figure(figsize=(8, 6), dpi=150)
-    plt.plot(I0_vals, posterior, label="Posterior vs. I0")
-    plt.xlabel(r"$I_0$", fontsize=15)
-    plt.ylabel("Posterior Probability", fontsize=15)
-    plt.title("Posterior Distribution vs. Intensity (I0)")
-    plt.legend()
-    plt.show()
