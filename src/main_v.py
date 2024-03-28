@@ -145,7 +145,7 @@ print(f"Max {tau = }")
 chain_1 = sampler.get_chain(flat=True)
 chain_2 = sampler_2.get_chain(flat=True)
 print(len(chain_1), len(chain_2))
-
+#%%
 fig, axs = plt.subplots(nrows=2, figsize=(7, 7))
 
 # Plotting for parameter alpha

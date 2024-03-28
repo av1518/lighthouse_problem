@@ -9,9 +9,9 @@ from matplotlib import rcParams
 
 # Set matplotlib params
 plt.rcParams["font.family"] = "serif"
-plt.rcParams["font.serif"] = ["Times New Roman"]  # or 'DejaVu Serif'
-plt.rcParams["text.usetex"] = False  # Keep as False if LaTeX is not installed
-plt.rcParams["mathtext.fontset"] = "stix"  # LaTeX-like fonts for math expressions
+plt.rcParams["font.serif"] = ["Times New Roman"]
+plt.rcParams["text.usetex"] = False
+plt.rcParams["mathtext.fontset"] = "stix"
 plt.rcParams["axes.titlesize"] = 16
 plt.rcParams["axes.labelsize"] = 14
 plt.rcParams["xtick.labelsize"] = 12
@@ -32,7 +32,7 @@ from funcs import (
 
 # Update Matplotlib settings to use LaTeX-like font
 rcParams["font.family"] = "serif"
-rcParams["text.usetex"] = False  # Keep as False if LaTeX is not installed
+rcParams["text.usetex"] = False
 # load the data
 file_path = "../lighthouse_flash_data.txt"
 data = pd.read_csv(file_path, sep=" ", header=None)
@@ -78,9 +78,7 @@ def plot_posterior_vs_intensity(
         color="blue",
     )
     plt.xlabel(r"$I_0$", fontsize=15)
-    plt.ylabel(
-        r"$\mathcal{L}(\{ log(I_k) | \hat{\alpha}, \hat{\beta}, I_0)   $ ", fontsize=15
-    )
+    plt.ylabel(r"$P( I_0 | \hat{\alpha}, \hat{\beta}, {x_k}, {I_k})$ ", fontsize=15)
     # plt.title("Posterior Distribution vs. Intensity (I0)")
 
     # Set the y-axis formatter to scientific notation
@@ -211,7 +209,6 @@ def plot_gelman_rubin(gr_stats_alpha, gr_stats_beta, gr_stats_I0, max_iteration)
     plt.show()
 
 
-# Example usage
 plot_gelman_rubin(GR_alpha, GR_beta, GR_I0, 100)  # Plots up to the 100th iteration
 
 # %%
