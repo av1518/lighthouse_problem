@@ -50,10 +50,13 @@ This project is open-sourced under the [MIT](https://choosealicense.com/licenses
 ## Autogeneration tools:
 Co-pilot was used in the following way:
 - Autocompleting documentation for functions and for scripts
+- Sometimes we used the autocomplete feature for standard script routines (although these almost always need fixing and are acting as templates) such as:
+    - #plotting the data
+    - :Allowed to autocomplete the plotting script.
 - Understand error messages with "Explain this error" button next to the error message.
 - General questions such as:
 
-How can i change a function name and have it change throughout my workspace?  
+How can i change a function name and have it change throughout my workspace?
 
 Answer: In Visual Studio Code, you can use the "Rename Symbol" feature to change a function name throughout your workspace. Here are the steps:
 
